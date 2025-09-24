@@ -279,3 +279,5 @@ def calculator():
 
 calculator()
 #计算机.done
+python3 index.python
+
