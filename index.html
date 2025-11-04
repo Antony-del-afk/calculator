@@ -15,6 +15,15 @@
   --display-bg: #101010;
 }
 
+body.light {
+  --bg-color: #f0f0f0;
+  --btn-color: #ddd;
+  --btn-hover: #ccc;
+  --text-color: #000;
+  --accent: #0077cc;
+  --display-bg: #fff;
+}
+
 body {
   background: var(--bg-color);
   color: var(--text-color);
@@ -24,6 +33,7 @@ body {
   align-items: center;
   height: 100vh;
   margin: 0;
+  transition: all 0.3s;
 }
 
 .calculator {
@@ -32,6 +42,10 @@ body {
   padding: 20px;
   width: 360px;
   box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+body.light .calculator {
+  background: #eee;
 }
 
 .display {
@@ -116,6 +130,11 @@ button.equal {
   color: white;
 }
 
+body.light #historyContent {
+  background-color: #ddd;
+  color: #000;
+}
+
 #historyContent h2 {
   text-align: center;
 }
@@ -123,6 +142,10 @@ button.equal {
 .history-item {
   border-bottom: 1px solid #444;
   padding: 5px 0;
+}
+
+body.light .history-item {
+  border-bottom: 1px solid #aaa;
 }
 
 .close {
@@ -154,6 +177,7 @@ button.equal {
   <div class="mode-toggle">
     <label><input type="checkbox" id="degRadToggle" checked> Deg</label>
     <button onclick="toggleHistory()">🕓</button>
+    <button onclick="toggleTheme()">🌗</button>
   </div>
 
   <input type="text" id="display" class="display" readonly>
@@ -238,72 +262,74 @@ button.equal {
   </div>
 </div>
 
+<audio id="clickSound" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
+
 <script>
 const display = document.getElementById('display');
 const degRadToggle = document.getElementById('degRadToggle');
 const historyModal = document.getElementById('historyModal');
 const historyList = document.getElementById('historyList');
 const memoryLabel = document.getElementById('memoryLabel');
+const clickSound = document.getElementById('clickSound');
 
 let memoryValue = 0;
 let history = [];
 
-function append(value) { display.value += value; }
-function clearDisplay() { display.value = ''; }
-function deleteChar() { display.value = display.value.slice(0, -1); }
-function toRadians(v) { return degRadToggle.checked ? v * Math.PI / 180 : v; }
+function playClick(){ clickSound.currentTime=0; clickSound.play(); }
 
-function factorial(n) {
-  if (n < 0) return NaN;
-  if (n === 0 || n === 1) return 1;
+function append(value){ display.value += value; playClick(); }
+function clearDisplay(){ display.value=''; playClick(); }
+function deleteChar(){ display.value=display.value.slice(0,-1); playClick(); }
+function toRadians(v){ return degRadToggle.checked ? v*Math.PI/180 : v; }
+
+function factorial(n){
+  if(n<0) return NaN;
+  if(n===0||n===1) return 1;
   return Array.from({length:n},(_,i)=>i+1).reduce((a,b)=>a*b,1);
 }
 
-function calculate() {
-  try {
+function calculate(){
+  playClick();
+  try{
     let exp = display.value
-      .replace(/pi/g, 'Math.PI')
-      .replace(/e/g, 'Math.E')
-      .replace(/√/g, 'Math.sqrt')
-      .replace(/\^/g, '**')
-      .replace(/log\(/g, 'Math.log10(')
-      .replace(/ln\(/g, 'Math.log(')
-      .replace(/exp\(/g, 'Math.exp(')
-      .replace(/([0-9]+)!/g, 'factorial($1)')
-      .replace(/sin\(([^)]+)\)/g, (_,x)=>`Math.sin(toRadians(${x}))`)
-      .replace(/cos\(([^)]+)\)/g, (_,x)=>`Math.cos(toRadians(${x}))`)
-      .replace(/tan\(([^)]+)\)/g, (_,x)=>`Math.tan(toRadians(${x}))`)
-      .replace(/asin\(([^)]+)\)/g, (_,x)=>`(${degRadToggle.checked?'Math.asin('+x+')*180/Math.PI':'Math.asin('+x+')'})`)
-      .replace(/acos\(([^)]+)\)/g, (_,x)=>`(${degRadToggle.checked?'Math.acos('+x+')*180/Math.PI':'Math.acos('+x+')'})`)
-      .replace(/atan\(([^)]+)\)/g, (_,x)=>`(${degRadToggle.checked?'Math.atan('+x+')*180/Math.PI':'Math.atan('+x+')'})`);
-
-    let result = eval(exp);
-    if (!isFinite(result)) throw '错误';
-    result = parseFloat(result.toPrecision(12));
-    addHistory(display.value + ' = ' + result);
-    display.value = result;
-  } catch {
-    display.value = '错误';
-  }
+      .replace(/pi/g,'Math.PI')
+      .replace(/e/g,'Math.E')
+      .replace(/√/g,'Math.sqrt')
+      .replace(/\^/g,'**')
+      .replace(/log\(/g,'Math.log10(')
+      .replace(/ln\(/g,'Math.log(')
+      .replace(/exp\(/g,'Math.exp(')
+      .replace(/([0-9]+)!/g,'factorial($1)')
+      .replace(/sin\(([^)]+)\)/g,(_,x)=>`Math.sin(toRadians(${x}))`)
+      .replace(/cos\(([^)]+)\)/g,(_,x)=>`Math.cos(toRadians(${x}))`)
+      .replace(/tan\(([^)]+)\)/g,(_,x)=>`Math.tan(toRadians(${x}))`)
+      .replace(/asin\(([^)]+)\)/g,(_,x)=>`(${degRadToggle.checked?'Math.asin('+x+')*180/Math.PI':'Math.asin('+x+')'})`)
+      .replace(/acos\(([^)]+)\)/g,(_,x)=>`(${degRadToggle.checked?'Math.acos('+x+')*180/Math.PI':'Math.acos('+x+')'})`)
+      .replace(/atan\(([^)]+)\)/g,(_,x)=>`(${degRadToggle.checked?'Math.atan('+x+')*180/Math.PI':'Math.atan('+x+')'})`);
+    let result=eval(exp);
+    if(!isFinite(result)) throw '错误';
+    result=parseFloat(result.toPrecision(12));
+    addHistory(display.value+' = '+result);
+    display.value=result;
+  }catch{display.value='错误';}
 }
 
-function addHistory(entry) {
+function addHistory(entry){
   history.unshift(entry);
-  if (history.length > 30) history.pop();
+  if(history.length>30) history.pop();
   historyList.innerHTML = history.map(h=>`<div class='history-item'>${h}</div>`).join('');
 }
 
-function toggleHistory() {
-  historyModal.style.display = historyModal.style.display==='block'?'none':'block';
-}
+function toggleHistory(){historyModal.style.display=historyModal.style.display==='block'?'none':'block';}
+function toggleTheme(){document.body.classList.toggle('light'); playClick();}
 
-window.onclick = e => { if (e.target===historyModal) historyModal.style.display='none'; };
+window.onclick=e=>{if(e.target===historyModal) historyModal.style.display='none';};
 
-function memoryClear(){memoryValue=0;updateMemoryLabel();}
-function memoryRecall(){display.value+=memoryValue;}
-function memoryAdd(){memoryValue+=(parseFloat(display.value)||0);updateMemoryLabel();}
-function memorySubtract(){memoryValue-=(parseFloat(display.value)||0);updateMemoryLabel();}
-function memoryStore(){memoryValue=parseFloat(display.value)||0;updateMemoryLabel();}
+function memoryClear(){memoryValue=0;updateMemoryLabel();playClick();}
+function memoryRecall(){display.value+=memoryValue;playClick();}
+function memoryAdd(){memoryValue+=(parseFloat(display.value)||0);updateMemoryLabel();playClick();}
+function memorySubtract(){memoryValue-=(parseFloat(display.value)||0);updateMemoryLabel();playClick();}
+function memoryStore(){memoryValue=parseFloat(display.value)||0;updateMemoryLabel();playClick();}
 function updateMemoryLabel(){memoryLabel.textContent=memoryValue!==0?'M':'';}
 
 document.addEventListener('keydown', e=>{
@@ -316,4 +342,3 @@ document.addEventListener('keydown', e=>{
 </script>
 </body>
 </html>
-
