@@ -158,7 +158,6 @@ button.equal {
 
   <input type="text" id="display" class="display" readonly>
 
-  <!-- 记忆行 -->
   <div class="row">
     <button onclick="memoryClear()">MC</button>
     <button onclick="memoryRecall()">MR</button>
@@ -167,7 +166,6 @@ button.equal {
     <button onclick="memoryStore()">MS</button>
   </div>
 
-  <!-- 功能行 -->
   <div class="row">
     <button onclick="clearDisplay()">C</button>
     <button onclick="deleteChar()">⌫</button>
@@ -232,7 +230,6 @@ button.equal {
   </div>
 </div>
 
-<!-- 弹出历史窗口 -->
 <div id="historyModal">
   <div id="historyContent">
     <span class="close" onclick="toggleHistory()">&times;</span>
@@ -251,40 +248,20 @@ const memoryLabel = document.getElementById('memoryLabel');
 let memoryValue = 0;
 let history = [];
 
-// ✅ 显示操作
-function append(value) {
-  display.value += value;
-}
+function append(value) { display.value += value; }
+function clearDisplay() { display.value = ''; }
+function deleteChar() { display.value = display.value.slice(0, -1); }
+function toRadians(v) { return degRadToggle.checked ? v * Math.PI / 180 : v; }
 
-function clearDisplay() {
-  display.value = '';
-}
-
-function deleteChar() {
-  display.value = display.value.slice(0, -1);
-}
-
-// ✅ 角度/弧度判断
-function toRadians(value) {
-  return degRadToggle.checked ? value * Math.PI / 180 : value;
-}
-
-// ✅ 阶乘
 function factorial(n) {
   if (n < 0) return NaN;
   if (n === 0 || n === 1) return 1;
-  let result = 1;
-  for (let i = 2; i <= n; i++) result *= i;
-  return result;
+  return Array.from({length:n},(_,i)=>i+1).reduce((a,b)=>a*b,1);
 }
 
-// ✅ 计算表达式
 function calculate() {
   try {
-    let expression = display.value;
-
-    // 替换符号为 JS 可执行形式
-    expression = expression
+    let exp = display.value
       .replace(/pi/g, 'Math.PI')
       .replace(/e/g, 'Math.E')
       .replace(/√/g, 'Math.sqrt')
@@ -292,102 +269,51 @@ function calculate() {
       .replace(/log\(/g, 'Math.log10(')
       .replace(/ln\(/g, 'Math.log(')
       .replace(/exp\(/g, 'Math.exp(')
-      .replace(/([0-9]+)!/g, 'factorial($1)');
+      .replace(/([0-9]+)!/g, 'factorial($1)')
+      .replace(/sin\(([^)]+)\)/g, (_,x)=>`Math.sin(toRadians(${x}))`)
+      .replace(/cos\(([^)]+)\)/g, (_,x)=>`Math.cos(toRadians(${x}))`)
+      .replace(/tan\(([^)]+)\)/g, (_,x)=>`Math.tan(toRadians(${x}))`)
+      .replace(/asin\(([^)]+)\)/g, (_,x)=>`(${degRadToggle.checked?'Math.asin('+x+')*180/Math.PI':'Math.asin('+x+')'})`)
+      .replace(/acos\(([^)]+)\)/g, (_,x)=>`(${degRadToggle.checked?'Math.acos('+x+')*180/Math.PI':'Math.acos('+x+')'})`)
+      .replace(/atan\(([^)]+)\)/g, (_,x)=>`(${degRadToggle.checked?'Math.atan('+x+')*180/Math.PI':'Math.atan('+x+')'})`);
 
-    // 三角函数处理（角度制）
-    expression = expression
-      .replace(/sin\(([^)]+)\)/g, (_, x) => `Math.sin(toRadians(${x}))`)
-      .replace(/cos\(([^)]+)\)/g, (_, x) => `Math.cos(toRadians(${x}))`)
-      .replace(/tan\(([^)]+)\)/g, (_, x) => `Math.tan(toRadians(${x}))`)
-      .replace(/asin\(([^)]+)\)/g, (_, x) => `(${degRadToggle.checked ? 'Math.asin(' + x + ') * 180/Math.PI' : 'Math.asin(' + x + ')'})`)
-      .replace(/acos\(([^)]+)\)/g, (_, x) => `(${degRadToggle.checked ? 'Math.acos(' + x + ') * 180/Math.PI' : 'Math.acos(' + x + ')'})`)
-      .replace(/atan\(([^)]+)\)/g, (_, x) => `(${degRadToggle.checked ? 'Math.atan(' + x + ') * 180/Math.PI' : 'Math.atan(' + x + ')'})`);
-
-    let result = eval(expression);
-
-    if (result === Infinity || isNaN(result)) throw '错误';
+    let result = eval(exp);
+    if (!isFinite(result)) throw '错误';
     result = parseFloat(result.toPrecision(12));
-
     addHistory(display.value + ' = ' + result);
     display.value = result;
-
-  } catch (err) {
+  } catch {
     display.value = '错误';
   }
 }
 
-// ✅ 历史记录
 function addHistory(entry) {
   history.unshift(entry);
   if (history.length > 30) history.pop();
-  updateHistory();
-}
-
-function updateHistory() {
-  historyList.innerHTML = history
-    .map(h => `<div class="history-item">${h}</div>`)
-    .join('');
+  historyList.innerHTML = history.map(h=>`<div class='history-item'>${h}</div>`).join('');
 }
 
 function toggleHistory() {
-  historyModal.style.display = historyModal.style.display === 'block' ? 'none' : 'block';
+  historyModal.style.display = historyModal.style.display==='block'?'none':'block';
 }
 
-window.onclick = function(event) {
-  if (event.target === historyModal) {
-    historyModal.style.display = 'none';
-  }
-}
+window.onclick = e => { if (e.target===historyModal) historyModal.style.display='none'; };
 
-// ✅ 记忆功能
-function memoryClear() {
-  memoryValue = 0;
-  updateMemoryLabel();
-}
+function memoryClear(){memoryValue=0;updateMemoryLabel();}
+function memoryRecall(){display.value+=memoryValue;}
+function memoryAdd(){memoryValue+=(parseFloat(display.value)||0);updateMemoryLabel();}
+function memorySubtract(){memoryValue-=(parseFloat(display.value)||0);updateMemoryLabel();}
+function memoryStore(){memoryValue=parseFloat(display.value)||0;updateMemoryLabel();}
+function updateMemoryLabel(){memoryLabel.textContent=memoryValue!==0?'M':'';}
 
-function memoryRecall() {
-  display.value += memoryValue;
-}
-
-function memoryAdd() {
-  try {
-    memoryValue += parseFloat(display.value) || 0;
-    updateMemoryLabel();
-  } catch {}
-}
-
-function memorySubtract() {
-  try {
-    memoryValue -= parseFloat(display.value) || 0;
-    updateMemoryLabel();
-  } catch {}
-}
-
-function memoryStore() {
-  try {
-    memoryValue = parseFloat(display.value) || 0;
-    updateMemoryLabel();
-  } catch {}
-}
-
-function updateMemoryLabel() {
-  memoryLabel.textContent = memoryValue !== 0 ? 'M' : '';
-}
-
-// ✅ 键盘输入支持
-document.addEventListener('keydown', function(event) {
-  const key = event.key;
-
-  if (/[0-9.()+\-*/^%]/.test(key)) {
-    append(key);
-  } else if (key === 'Enter' || key === '=') {
-    calculate();
-  } else if (key === 'Backspace') {
-    deleteChar();
-  } else if (key === 'Escape') {
-    clearDisplay();
-  }
+document.addEventListener('keydown', e=>{
+  const k=e.key;
+  if(/[0-9.()+\-*/^%]/.test(k)) append(k);
+  else if(k==='Enter'||k==='=') calculate();
+  else if(k==='Backspace') deleteChar();
+  else if(k==='Escape') clearDisplay();
 });
 </script>
 </body>
 </html>
+
